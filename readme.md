@@ -20,14 +20,14 @@ python3 main.py
 ## Example Input
 ```python
 lines = [
-    ">> System Analysis",
-    "$ Checking components...",
-    "# This is a comment",
-    "! Warning: High CPU usage",
-    "@ Info: 8GB RAM available",
-    "img_left: https://pbs.twimg.com/ext_tw_video_thumb/1858064790821974016/pu/img/MQU4WFGD8vSyb_A2.jpg",  # Remote image
-    "img_center: images/bear_ryan.png",              # Local image
-    ">>> Custom style line"
+    ">> 🖥️ System Analysis",
+    "$ 🔍 Checking components...",
+    "# 📝 This is a comment",
+    "! ⚠️ Warning: High CPU usage",
+    "@ ℹ️ Info: 8GB RAM available",
+    "img_left: https://pbs.twimg.com/ext_tw_video_thumb/1858064790821974016/pu/img/MQU4WFGD8vSyb_A2.jpg",
+    "img_center: images/bear_ryan.png",
+    ">>> 🚀 Custom style line"
 ]
 ```
 

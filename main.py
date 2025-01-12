@@ -11,14 +11,14 @@ if __name__ == "__main__":
 
     # Example usage with different line styles
     lines = [
-        ">> System Analysis",
-        "$ Checking components...",
-        "# This is a comment",
-        "! Warning: High CPU usage",
-        "@ Info: 8GB RAM available",
+        ">> 🖥️ System Analysis",
+        "$ 🔍 Checking components... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... End of line",
+        "# 📝 This is a comment",
+        "! ⚠️Warning: High CPU usage",
+        "@ ℹ️ Info: 8GB RAM available",
         "img_left: https://pbs.twimg.com/ext_tw_video_thumb/1858064790821974016/pu/img/MQU4WFGD8vSyb_A2.jpg",
         "img_center: images/bear_ryan.png",
-        ">>> Custom style line"
+        ">>> 🚀 Custom style line"
     ]
 
     # Generate image

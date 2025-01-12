@@ -6,11 +6,13 @@ import requests
 from PIL import Image, ImageDraw, ImageFont
 import datetime
 import os
+import textwrap  # Add this import at the top
 
 class CLIStyleRenderer:
     def __init__(
         self,
         font_path: Optional[str] = None,
+        emoji_font_path: Optional[str] = None,
         output_dir: str = "outputs",
         style_config: Optional[Dict] = None
     ):
@@ -49,14 +51,15 @@ class CLIStyleRenderer:
             "img": { # Image style
                 "color": (255, 128, 255), # Pink
                 "glow": True,
-                "prefix": "🖼",
+                "prefix": "",
                 "indent": 20,
                 "max_height": 300
             }
         }
         
         self.style_config = {**self.default_style_config, **(style_config or {})}
-        self.font_path = font_path or "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        self.emoji_font_path = emoji_font_path or "fonts/NotoColorEmoji.ttf"
+        self.font_path = font_path or "fonts/NotoColorEmoji.ttf"
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -89,17 +92,38 @@ class CLIStyleRenderer:
         lines: List[str],
         width: int = 1200,
         padding: int = 40,
-        font_size: int = 24,
+        font_size: int = 109,
         show_chrome: bool = True
     ) -> str:
         """Generate CLI image from text lines with different styles."""
-        # First pass: calculate total height including images
+        try:
+            font = ImageFont.truetype(self.font_path, font_size)
+        except Exception:
+            font = ImageFont.load_default()
+
+        # Helper function to calculate character limit
+        def get_char_limit(text: str, max_width: int) -> int:
+            left = 1
+            right = len(text)
+            while left <= right:
+                mid = (left + right) // 2
+                test_text = text[:mid]
+                bbox = font.getbbox(test_text)
+                if bbox:
+                    text_width = bbox[2] - bbox[0]
+                    if text_width <= max_width:
+                        left = mid + 1
+                    else:
+                        right = mid - 1
+            return right
+
+        # First pass: calculate total height including wrapped text and images
         line_height = int(font_size * 1.5)
         total_height = padding * 2
         if show_chrome:
             total_height += 30  # Header height
 
-        # Pre-calculate height by processing images first
+        # Pre-calculate height by processing images and wrapping text
         for line in lines:
             line = line.strip()
             if line.startswith(("img_left:", "img_center:")):
@@ -109,9 +133,24 @@ class CLIStyleRenderer:
                     self.style_config["img"]["max_height"]
                 )
                 if img_obj:
-                    total_height += img_obj.height + 10  # Image height + padding
+                    total_height += img_obj.height + 10
             else:
-                total_height += line_height  # Regular line height
+                # Calculate available width for this line
+                style = next((s for p, s in self.style_config.items() if line.startswith(p)), 
+                           self.style_config["$"])
+                available_width = width - (2 * padding) - style["indent"]
+                
+                # Calculate wrapped lines based on pixel width
+                wrapped_lines = []
+                remaining = line
+                while remaining:
+                    char_limit = get_char_limit(remaining, available_width)
+                    if char_limit == 0:  # Fallback if calculation fails
+                        char_limit = len(remaining)
+                    wrapped_lines.append(remaining[:char_limit])
+                    remaining = remaining[char_limit:].lstrip()
+                
+                total_height += line_height * len(wrapped_lines)
 
         # Create image with calculated height
         img = Image.new("RGB", (width, total_height), (0, 0, 20))
@@ -135,7 +174,6 @@ class CLIStyleRenderer:
                 current_y += line_height
                 continue
 
-            # Handle image lines with alignment
             if line.startswith(("img_left:", "img_center:")):
                 align = "center" if line.startswith("img_center:") else "left"
                 image_path = line.split(":", 1)[1].strip()
@@ -164,20 +202,30 @@ class CLIStyleRenderer:
             if not style:
                 style = self.style_config["$"]  # Default style
 
-            # Draw line with style
-            try:
-                font = ImageFont.truetype(self.font_path, font_size)
-            except Exception:
-                font = ImageFont.load_default()
+            # Calculate available width for text
+            available_width = width - (2 * padding) - style["indent"]
+            
+            # Wrap text based on pixel width
+            wrapped_lines = []
+            remaining = line
+            while remaining:
+                char_limit = get_char_limit(remaining, available_width)
+                if char_limit == 0:  # Fallback if calculation fails
+                    char_limit = len(remaining)
+                wrapped_lines.append(remaining[:char_limit])
+                remaining = remaining[char_limit:].lstrip()
 
+            # Draw each wrapped line
             x = padding + style["indent"]
-            draw.text(
-                (x, current_y),
-                line,
-                font=font,
-                fill=style["color"]
-            )
-            current_y += line_height
+            for wrapped_line in wrapped_lines:
+                draw.text(
+                    (x, current_y),
+                    wrapped_line,
+                    font=font,
+                    fill=style["color"],
+                    embedded_color=True
+                )
+                current_y += line_height
 
         # Add clean border without glow, with adjusted padding for chrome
         border_color = (0, 255, 255)

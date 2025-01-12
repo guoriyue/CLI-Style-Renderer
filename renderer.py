@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional
 from pathlib import Path
 import base64
 from io import BytesIO
@@ -6,7 +6,6 @@ import requests
 from PIL import Image, ImageDraw, ImageFont
 import datetime
 import os
-import json
 
 class CLIStyleRenderer:
     def __init__(
@@ -18,39 +17,39 @@ class CLIStyleRenderer:
         """Initialize with custom styles for different line prefixes."""
         self.default_style_config = {
             ">>": {  # Command style
-                "color": [0, 255, 255],  # Cyan
+                "color": (0, 255, 255),  # Cyan
                 "glow": True,
                 "prefix": ">>",
                 "indent": 0
             },
             "$": {   # Output style
-                "color": [0, 255, 0],    # Green
+                "color": (0, 255, 0),    # Green
                 "glow": True,
                 "prefix": "$",
                 "indent": 20
             },
             "#": {   # Comment style
-                "color": [128, 128, 128], # Gray
+                "color": (128, 128, 128), # Gray
                 "glow": False,
                 "prefix": "#",
                 "indent": 10
             },
             "!": {   # Error/Warning style
-                "color": [255, 0, 0],     # Red
+                "color": (255, 0, 0),     # Red
                 "glow": True,
                 "prefix": "!",
                 "indent": 0
             },
             "@": {   # Info style
-                "color": [255, 255, 0],   # Yellow
+                "color": (255, 255, 0),   # Yellow
                 "glow": True,
                 "prefix": "@",
                 "indent": 10
             },
             "img": { # Image style
-                "color": [255, 128, 255], # Pink
+                "color": (255, 128, 255), # Pink
                 "glow": True,
-                "prefix": "",
+                "prefix": "🖼",
                 "indent": 20,
                 "max_height": 300
             }
@@ -214,35 +213,3 @@ class CLIStyleRenderer:
         filename = f"{filename}_{timestamp}.png"
         with open(os.path.join(self.output_dir, filename), "wb") as f:
             f.write(base64.b64decode(img_base64))
-
-if __name__ == "__main__":
-    # Load custom styles from JSON
-    with open('style_config.json', 'r') as f:
-        custom_styles = json.load(f)
-        
-    # Create with custom styles
-    generator = CLIStyleRenderer(style_config=custom_styles)
-
-    # Example usage with different line styles
-    lines = [
-        ">> System Analysis",
-        "$ Checking components...",
-        "# This is a comment",
-        "! Warning: High CPU usage",
-        "@ Info: 8GB RAM available",
-        "img_left: https://pbs.twimg.com/ext_tw_video_thumb/1858064790821974016/pu/img/MQU4WFGD8vSyb_A2.jpg",
-        "img_center: images/bear_ryan.png",
-        ">>> Custom style line"
-    ]
-
-    # Generate image
-    img_base64 = generator.generate_cli_image(
-        lines,
-        width=1200,
-        padding=40,
-        font_size=24,
-        show_chrome=True
-    )
-
-    # Save image
-    generator.save_image_by_timestamp(img_base64, "output")

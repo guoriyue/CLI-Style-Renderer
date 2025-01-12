@@ -34,7 +34,7 @@ lines = [
 
 ## Example Output
 The script processes the input lines and generates an image with the specified layout and styles. 
-![CLI Style Renderer Example](/root/cli-style-renderer/output_2025-01-11_19-50-48.png)
+![CLI Style Renderer Example](output_2025-01-11_19-50-48.png)
 
 ## Configuration
 Styles and settings can be customized by modifying the `style_config.json` file:

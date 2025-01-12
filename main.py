@@ -12,7 +12,7 @@ if __name__ == "__main__":
     # Example usage with different line styles
     lines = [
         ">> 🖥️ System Analysis",
-        "$ 🔍 Checking components... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... End of line",
+        "$ 🔍 Checking components... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... Super loooooooooong line... End of line 🐻‍❄️",
         "# 📝 This is a comment",
         "! ⚠️Warning: High CPU usage",
         "@ ℹ️ Info: 8GB RAM available",
@@ -24,9 +24,7 @@ if __name__ == "__main__":
     # Generate image
     img_base64 = generator.generate_cli_image(
         lines,
-        width=1200,
-        padding=40,
-        font_size=24,
+        width=2400,
         show_chrome=True
     )
 

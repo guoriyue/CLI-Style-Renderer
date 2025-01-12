@@ -59,9 +59,13 @@ class CLIStyleRenderer:
         
         self.style_config = {**self.default_style_config, **(style_config or {})}
         self.emoji_font_path = emoji_font_path or "fonts/NotoColorEmoji.ttf"
-        self.font_path = font_path or "fonts/NotoColorEmoji.ttf"
+        self.font_path = font_path or "fonts/DejaVuSans.ttf"
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.font_size = 80
+        # Increase regular font size to better match emoji size
+        self.font = ImageFont.truetype(self.font_path, size=80, layout_engine=ImageFont.Layout.BASIC)
+        self.emoji_font = ImageFont.truetype(self.emoji_font_path, size=109, layout_engine=ImageFont.Layout.BASIC)
 
     def _process_image(self, image_path: str, max_height: int, align: str = "left") -> Optional[Image.Image]:
         """Process image from URL or local path."""
@@ -87,20 +91,30 @@ class CLIStyleRenderer:
             print(f"Error processing image: {e}")
             return None
 
+    def _is_emoji(self, char: str) -> bool:
+        """Check if a character is an emoji."""
+        return any(u"\U0001F300" <= c <= u"\U0001FAF6" for c in char)
+
+    def _get_text_width(self, text: str) -> int:
+        """Get the width of text, accounting for both regular text and emojis."""
+        total_width = 0
+        for char in text:
+            if self._is_emoji(char):
+                bbox = self.emoji_font.getbbox(char)
+            else:
+                bbox = self.font.getbbox(char)
+            if bbox:
+                total_width += bbox[2] - bbox[0]
+        return total_width
+
     def generate_cli_image(
         self,
         lines: List[str],
-        width: int = 1200,
-        padding: int = 40,
-        font_size: int = 109,
+        width: int = 1920,
+        padding: int = 80,
         show_chrome: bool = True
     ) -> str:
         """Generate CLI image from text lines with different styles."""
-        try:
-            font = ImageFont.truetype(self.font_path, font_size)
-        except Exception:
-            font = ImageFont.load_default()
-
         # Helper function to calculate character limit
         def get_char_limit(text: str, max_width: int) -> int:
             left = 1
@@ -108,17 +122,15 @@ class CLIStyleRenderer:
             while left <= right:
                 mid = (left + right) // 2
                 test_text = text[:mid]
-                bbox = font.getbbox(test_text)
-                if bbox:
-                    text_width = bbox[2] - bbox[0]
-                    if text_width <= max_width:
-                        left = mid + 1
-                    else:
-                        right = mid - 1
+                text_width = self._get_text_width(test_text)
+                if text_width <= max_width:
+                    left = mid + 1
+                else:
+                    right = mid - 1
             return right
 
         # First pass: calculate total height including wrapped text and images
-        line_height = int(font_size * 1.5)
+        line_height = int(self.font_size * 1.5)
         total_height = padding * 2
         if show_chrome:
             total_height += 30  # Header height
@@ -218,12 +230,12 @@ class CLIStyleRenderer:
             # Draw each wrapped line
             x = padding + style["indent"]
             for wrapped_line in wrapped_lines:
-                draw.text(
-                    (x, current_y),
+                self.draw_text_with_emojis(
+                    draw,
+                    x,
+                    current_y,
                     wrapped_line,
-                    font=font,
-                    fill=style["color"],
-                    embedded_color=True
+                    style["color"]
                 )
                 current_y += line_height
 
@@ -245,13 +257,13 @@ class CLIStyleRenderer:
 
     def _add_window_chrome(self, draw: ImageDraw.ImageDraw, width: int) -> int:
         """Add terminal window chrome and return header height."""
-        header_height = 30
+        header_height = 60
         draw.rectangle([(0, 0), (width, header_height)], fill=(30, 30, 30))
         
-        # Terminal buttons
+        # Larger terminal buttons
         button_colors = [(255, 95, 86), (255, 189, 46), (39, 201, 63)]
         for i, color in enumerate(button_colors):
-            draw.ellipse([(10 + i*25, 8), (25 + i*25, 23)], fill=color)
+            draw.ellipse([(20 + i*50, 15), (50 + i*50, 45)], fill=color)
             
         return header_height
     
@@ -261,3 +273,18 @@ class CLIStyleRenderer:
         filename = f"{filename}_{timestamp}.png"
         with open(os.path.join(self.output_dir, filename), "wb") as f:
             f.write(base64.b64decode(img_base64))
+
+    def draw_text_with_emojis(self, draw: ImageDraw.ImageDraw, x: int, y: int, text: str, color: tuple):
+        current_x = x
+        for char in text:
+            if self._is_emoji(char):
+                bbox = self.emoji_font.getbbox(char)
+                if bbox:
+                    # Adjusted vertical offset for better alignment with larger text
+                    draw.text((current_x, y - 15), char, font=self.emoji_font, embedded_color=True)
+                    current_x += bbox[2] - bbox[0]
+            else:
+                bbox = self.font.getbbox(char)
+                if bbox:
+                    draw.text((current_x, y), char, font=self.font, fill=color)
+                    current_x += bbox[2] - bbox[0]

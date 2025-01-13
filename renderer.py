@@ -14,7 +14,8 @@ class CLIStyleRenderer:
         font_path: Optional[str] = None,
         emoji_font_path: Optional[str] = None,
         output_dir: str = "outputs",
-        style_config: Optional[Dict] = None
+        style_config: Optional[Dict] = None,
+        cjk: bool = False
     ):
         """Initialize with custom styles for different line prefixes."""
         self.default_style_config = {
@@ -59,13 +60,24 @@ class CLIStyleRenderer:
         
         self.style_config = {**self.default_style_config, **(style_config or {})}
         self.emoji_font_path = emoji_font_path or "fonts/NotoColorEmoji.ttf"
-        self.font_path = font_path or "fonts/DejaVuSans.ttf"
+        # Use Noto Sans CJK which supports CJK characters
+        if cjk:
+            self.font_path = font_path or "fonts/NotoSansCJK-Regular.ttc"
+        else:
+            self.font_path = font_path or "fonts/DejaVuSans.ttf"
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.font_size = 80
-        # Increase regular font size to better match emoji size
-        self.font = ImageFont.truetype(self.font_path, size=80, layout_engine=ImageFont.Layout.BASIC)
-        self.emoji_font = ImageFont.truetype(self.emoji_font_path, size=109, layout_engine=ImageFont.Layout.BASIC)
+        self.emoji_font_size = 109
+        # Initialize fonts with fallback
+        try:
+            self.font = ImageFont.truetype(self.font_path, size=self.font_size, layout_engine=ImageFont.Layout.BASIC)
+        except Exception as e:
+            print(f"Failed to load CJK font: {e}")
+            # Fallback to DejaVuSans if CJK font is not available
+            self.font = ImageFont.truetype("fonts/DejaVuSans.ttf", size=self.font_size, layout_engine=ImageFont.Layout.BASIC)
+        
+        self.emoji_font = ImageFont.truetype(self.emoji_font_path, size=self.emoji_font_size, layout_engine=ImageFont.Layout.BASIC)
 
     def _process_image(self, image_path: str, max_height: int, align: str = "left") -> Optional[Image.Image]:
         """Process image from URL or local path."""
@@ -96,7 +108,7 @@ class CLIStyleRenderer:
         return any(u"\U0001F300" <= c <= u"\U0001FAF6" for c in char)
 
     def _get_text_width(self, text: str) -> int:
-        """Get the width of text, accounting for both regular text and emojis."""
+        """Get the width of text, accounting for CJK characters, regular text and emojis."""
         total_width = 0
         for char in text:
             if self._is_emoji(char):
